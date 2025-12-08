@@ -63,10 +63,7 @@ def filter_by_cheirality(points_3d, mask=None):
     """
     Filter points using cheirality check (points in front of cameras).
     """
-    if mask is None:
-        return points_3d
-
-    valid = mask.ravel() == 1
+    valid = points_3d[:, 2] > 0
     filtered = points_3d[valid]
     print(f"Cheirality filter: {len(filtered)} valid points out of {len(points_3d)}")
     return filtered
@@ -82,4 +79,5 @@ def filter_by_depth(points_3d, depth_min=0.1, depth_max=1000):
     removed = len(points_3d) - len(filtered)
     print(f"Depth filter: removed {removed} outliers, kept {len(filtered)} points")
     return filtered
+
 
