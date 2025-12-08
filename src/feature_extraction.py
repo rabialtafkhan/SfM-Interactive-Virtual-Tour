@@ -16,7 +16,7 @@ def extract_sift_features(image):
     if descriptors is None:
         print("⚠️ No SIFT features detected")
         return keypoints, np.array([])
-    
+    print(f"Detected {len(keypoints)} SIFT features")
     return keypoints, descriptors
 
 
@@ -35,6 +35,7 @@ def extract_orb_features(image, nfeatures=5000):
     if descriptors is None:
         print("⚠️ No ORB features detected")
         return keypoints, np.array([])
+    print(f"Detected {len(keypoints)} ORB features")
     return keypoints, descriptors
 
 
@@ -53,5 +54,7 @@ def filter_features_by_response(keypoints, descriptors, min_response=0.01):
     valid_idx = [i for i, kp in enumerate(keypoints) if kp.response >= min_response]
     
     filtered_kp = [keypoints[i] for i in valid_idx]
-    filtered_des = descriptors[valid_idx] if len(valid_idx) > 0 else np.array([])    
+    filtered_des = descriptors[valid_idx] if len(valid_idx) > 0 else np.array([]) 
+    print(f"Filtered to {len(filtered_kp)} features (response > {min_response})")
     return filtered_kp, filtered_des
+
