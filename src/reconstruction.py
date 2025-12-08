@@ -84,7 +84,7 @@ def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
     points_3d = triangulate_points(P1, P2, points1_inlier, points2_inlier)
     
     print("\n[10/10] Filtering points...")
-    points_3d = filter_by_cheirality(points_3d, pose_mask)
+    points_3d = filter_by_cheirality(points_3d)
     points_3d = filter_by_depth(points_3d, depth_min=0.1, depth_max=1000)
     
     if output_ply:
@@ -92,8 +92,9 @@ def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
         save_ply(output_ply, points_3d)
     
     print("\n" + "="*60)
-    print(f"✓ Reconstruction complete: {len(points_3d)} points")
+    print(f"Reconstruction complete: {len(points_3d)} points")
     print("="*60 + "\n")
     
     return points_3d, R, t, K
+
 
