@@ -23,6 +23,7 @@ def match_features_flann(des1, des2, ratio_threshold=0.7):
             m, n = match_pair
             if m.distance < ratio_threshold * n.distance:
                 good_matches.append(m)
+    print(f"FLANN: Found {len(good_matches)} good matches")
     return good_matches
 
 
@@ -48,6 +49,7 @@ def match_features_bf(des1, des2, ratio_threshold=0.7, use_hamming=True):
             m, n = match_pair
             if m.distance < ratio_threshold * n.distance:
                 good_matches.append(m)
+    print(f"BF: Found {len(good_matches)} good matches")
     return good_matches
 
 
@@ -80,4 +82,6 @@ def filter_matches_by_distance(matches, threshold=100.0):
     Filter matches by distance threshold.
     """
     filtered = [m for m in matches if m.distance < threshold]
+    print(f"Distance filter: {len(filtered)} matches (distance < {threshold})")
     return filtered
+
