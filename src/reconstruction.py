@@ -33,6 +33,7 @@ def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
     Full two-view reconstruction pipeline.
     """
     print("TWO-VIEW RECONSTRUCTION PIPELINE")
+    print("\n[1/10] Loading images...")
     img1_pil, img2_pil, img1_cv, img2_cv = load_image_pair(image_path_1, image_path_2)
     h, w = img1_cv.shape[:2]
     
@@ -95,3 +96,4 @@ def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
     print("="*60 + "\n")
     
     return points_3d, R, t, K
+
