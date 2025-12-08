@@ -14,7 +14,7 @@ def compute_intrinsic_matrix(image_width, image_height, focal_length=None):
     Create camera intrinsic matrix K.
     """
     if focal_length is None:
-        focal_length = image_width * 0.6
+        focal_length = image_width * 0.45
     
     cx = image_width / 2.0
     cy = image_height / 2.0
@@ -96,5 +96,6 @@ def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
     print("="*60 + "\n")
     
     return points_3d, R, t, K
+
 
 
