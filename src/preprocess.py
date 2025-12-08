@@ -14,7 +14,8 @@ def resize_image(image, max_width=1920, max_height=1080):
     new_w = int(w * scale)
     new_h = int(h * scale)
     
-    resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)    
+    resized = cv2.resize(image, (new_w, new_h), interpolation=cv2.INTER_AREA)   
+    print(f"Resized image from {w}x{h} to {new_w}x{new_h}")
     return resized
 
 
@@ -64,3 +65,4 @@ def gamma_correction(image, gamma=1.0):
     
     corrected = cv2.LUT(image, table)
     return corrected
+
