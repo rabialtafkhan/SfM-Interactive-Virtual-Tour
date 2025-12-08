@@ -23,6 +23,7 @@ def load_images(image_dir, file_extension='*.jpg'):
         except Exception as e:
             print(f"⚠️ Failed to load {path}: {e}")
             continue
+    print(f"Loaded {len(images_pil)} images from {image_dir}")
     return images_pil, image_paths
 
 
@@ -56,3 +57,4 @@ def load_image_pair(image_path_1, image_path_2):
     img2_cv = cv2.cvtColor(np.array(img2_pil), cv2.COLOR_RGB2BGR)
     
     return img1_pil, img2_pil, img1_cv, img2_cv
+
