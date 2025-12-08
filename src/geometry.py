@@ -19,7 +19,7 @@ def compute_essential_matrix(points1, points2, K, threshold=1.0):
     if E is None:
         print("⚠️ Failed to compute essential matrix")
         return None, None
-        return E, mask
+    return E, mask
 
 
 def recover_pose_from_essential(E, points1, points2, K):
@@ -77,5 +77,6 @@ def filter_by_depth(points_3d, depth_min=0.1, depth_max=1000):
     
     removed = len(points_3d) - len(filtered)    
     return filtered
+
 
 
