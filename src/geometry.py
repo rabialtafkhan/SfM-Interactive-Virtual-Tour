@@ -19,7 +19,7 @@ def compute_essential_matrix(points1, points2, K, threshold=1.0):
     if E is None:
         print("⚠️ Failed to compute essential matrix")
         return None, None
-
+    print(f"Essential matrix computed ({np.sum(mask)} inliers)")
     return E, mask
 
 
@@ -28,6 +28,7 @@ def recover_pose_from_essential(E, points1, points2, K):
     Recover camera pose (R, t) from an essential matrix.
     """
     num_inliers, R, t, mask = cv2.recoverPose(E, points1, points2, K)
+    print(f"Pose recovered ({num_inliers} points in front of both cameras)")
     return R, t, mask
 
 
@@ -54,6 +55,7 @@ def triangulate_points(P1, P2, points1, points2):
 
     points_4d = cv2.triangulatePoints(P1, P2, points1, points2)
     points_3d = (points_4d[:3] / points_4d[3]).T
+    print(f"Triangulated {len(points_3d)} points")
     return points_3d
 
 
@@ -65,7 +67,9 @@ def filter_by_cheirality(points_3d, mask=None):
         return points_3d
 
     valid = mask.ravel() == 1
-    return points_3d[valid]
+    filtered = points_3d[valid]
+    print(f"Cheirality filter: {len(filtered)} valid points out of {len(points_3d)}")
+    return filtered
 
 
 def filter_by_depth(points_3d, depth_min=0.1, depth_max=1000):
@@ -75,4 +79,7 @@ def filter_by_depth(points_3d, depth_min=0.1, depth_max=1000):
     depths = np.abs(points_3d[:, 2])
     valid = (depths >= depth_min) & (depths <= depth_max)
     filtered = points_3d[valid]
+    removed = len(points_3d) - len(filtered)
+    print(f"Depth filter: removed {removed} outliers, kept {len(filtered)} points")
     return filtered
+
