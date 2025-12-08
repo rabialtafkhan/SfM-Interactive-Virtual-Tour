@@ -1,13 +1,11 @@
 import cv2
 import numpy as np
 from load_data import load_image_pair
-from preprocess import resize_image
-from feature_extraction import extract_sift_features, extract_orb_features
+from feature_extraction import extract_sift_features
 from feature_matching import match_features_flann, extract_matched_points
 from geometry import (compute_essential_matrix, recover_pose_from_essential, 
                       create_projection_matrix, triangulate_points, 
                       filter_by_cheirality, filter_by_depth)
-
 
 def compute_intrinsic_matrix(image_width, image_height, focal_length=None):
     """
@@ -27,19 +25,19 @@ def compute_intrinsic_matrix(image_width, image_height, focal_length=None):
     
     return K
 
-
 def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
     """
     Full two-view reconstruction pipeline.
     """
     print("TWO-VIEW RECONSTRUCTION PIPELINE")
-    print("...")
     print("\n[1/10] Loading images...")
     img1_pil, img2_pil, img1_cv, img2_cv = load_image_pair(image_path_1, image_path_2)
     h, w = img1_cv.shape[:2]
     
+    print(f"Image size: {w} x {h}")
+    
     print("\n[2/10] Creating intrinsic matrix...")
-    K = compute_intrinsic_matrix(w, h, focal_length=w*0.45)
+    K = compute_intrinsic_matrix(w, h)
     print(f"  K = \n{K}")
     
     print("\n[3/10] Extracting SIFT features...")
@@ -50,12 +48,17 @@ def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
         print("⚠️ Failed to extract features")
         return None, None, None, K
     
+    print(f"Detected {len(kp1)} features in image 1")
+    print(f"Detected {len(kp2)} features in image 2")
+    
     print("\n[4/10] Matching features...")
     good_matches = match_features_flann(des1, des2, ratio_threshold=0.7)
     
     if len(good_matches) < 8:
         print(f"⚠️ Not enough matches: {len(good_matches)}")
         return None, None, None, K
+    
+    print(f"FLANN: Found {len(good_matches)} good matches")
     
     print("\n[5/10] Extracting matched points...")
     points1, points2 = extract_matched_points(kp1, kp2, good_matches)
@@ -88,16 +91,12 @@ def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
     points_3d = filter_by_cheirality(points_3d)
     points_3d = filter_by_depth(points_3d, depth_min=0.1, depth_max=1000)
     
-    if output_ply:
+    if output_ply and len(points_3d) > 0:
         from visualization import save_ply
         save_ply(output_ply, points_3d)
     
     print("\n" + "="*60)
-    print(f"Reconstruction complete: {len(points_3d)} points")
+    print(f"✓ Reconstruction complete: {len(points_3d)} points")
     print("="*60 + "\n")
     
     return points_3d, R, t, K
-
-
-
-
