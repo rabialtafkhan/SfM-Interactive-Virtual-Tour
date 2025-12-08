@@ -33,12 +33,13 @@ def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
     Full two-view reconstruction pipeline.
     """
     print("TWO-VIEW RECONSTRUCTION PIPELINE")
+    print("...")
     print("\n[1/10] Loading images...")
     img1_pil, img2_pil, img1_cv, img2_cv = load_image_pair(image_path_1, image_path_2)
     h, w = img1_cv.shape[:2]
     
     print("\n[2/10] Creating intrinsic matrix...")
-    K = compute_intrinsic_matrix(w, h)
+    K = compute_intrinsic_matrix(w, h, focal_length=w*0.45)
     print(f"  K = \n{K}")
     
     print("\n[3/10] Extracting SIFT features...")
@@ -96,6 +97,7 @@ def reconstruct_two_view(image_path_1, image_path_2, output_ply=None):
     print("="*60 + "\n")
     
     return points_3d, R, t, K
+
 
 
 
