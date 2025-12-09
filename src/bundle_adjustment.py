@@ -37,22 +37,19 @@ def compute_reprojection_errors(points_3d, observations, camera_poses, K, keypoi
             R, t = camera_poses[img_idx]
             t = t.reshape(3, 1)
             
-            # Project 3D point to image
             Rt = np.hstack([R, t])
             P = K @ Rt
             
             pt_3d_h = np.append(pt_3d, 1)
             proj = P @ pt_3d_h
             
-            if proj[2] <= 0:  # Behind camera
+            if proj[2] <= 0:  
                 continue
                 
             proj_2d = proj[:2] / proj[2]
             
-            # Get observed 2D point
             obs_2d = np.array(keypoints_list[img_idx][kp_idx].pt)
             
-            # Compute error
             error = np.linalg.norm(proj_2d - obs_2d)
             errors.append((pt_idx, img_idx, error))
             all_errors.append(error)
@@ -82,7 +79,6 @@ def filter_high_error_points(points_3d, point_colors, observations,
         filtered_observations: updated dict
         removed_count: number of points removed
     """
-    # Compute errors for each point
     point_errors = {}
     
     for pt_idx, obs_list in observations.items():
@@ -120,13 +116,11 @@ def filter_high_error_points(points_3d, point_colors, observations,
         if len(errors) > 0:
             point_errors[pt_idx] = np.mean(errors)
     
-    # Find valid points
     valid_mask = np.ones(len(points_3d), dtype=bool)
     for pt_idx, avg_error in point_errors.items():
         if avg_error > threshold:
             valid_mask[pt_idx] = False
     
-    # Create mapping from old to new indices
     old_to_new = {}
     new_idx = 0
     for old_idx in range(len(points_3d)):
@@ -134,11 +128,9 @@ def filter_high_error_points(points_3d, point_colors, observations,
             old_to_new[old_idx] = new_idx
             new_idx += 1
     
-    # Filter points and colors
     filtered_points = points_3d[valid_mask]
     filtered_colors = point_colors[valid_mask] if len(point_colors) == len(points_3d) else np.empty((0, 3))
     
-    # Update observations
     filtered_observations = {}
     for old_idx, obs_list in observations.items():
         if old_idx in old_to_new:
@@ -180,35 +172,27 @@ def bundle_adjustment_residuals(params, n_cameras, n_points, camera_indices,
     Returns:
         residuals: flattened array of reprojection errors (x and y)
     """
-    # Extract camera parameters
     camera_params = params[:n_cameras * 6].reshape((n_cameras, 6))
     points_3d = params[n_cameras * 6:].reshape((n_points, 3))
     
-    # Compute projections
     residuals = []
     
     for i, (cam_idx, pt_idx) in enumerate(zip(camera_indices, point_indices)):
-        # Get camera pose
         rvec = camera_params[cam_idx, :3]
         tvec = camera_params[cam_idx, 3:6]
         
-        # Get 3D point
         pt_3d = points_3d[pt_idx]
         
-        # Project point
         R = rodrigues_to_matrix(rvec)
         pt_cam = R @ pt_3d + tvec
         
         if pt_cam[2] <= 0:
-            # Point behind camera - large error
             residuals.extend([1000, 1000])
             continue
         
-        # Project to image
         pt_proj = K @ pt_cam
         pt_proj = pt_proj[:2] / pt_proj[2]
         
-        # Compute residual
         residuals.extend(pt_proj - points_2d[i])
     
     return np.array(residuals)
@@ -238,7 +222,6 @@ def run_bundle_adjustment(points_3d, observations, camera_poses, K, keypoints_li
     
     print(f"    Bundle Adjustment: {n_cameras} cameras, {n_points} points")
     
-    # Build observation arrays
     camera_indices = []
     point_indices = []
     points_2d = []
@@ -267,25 +250,21 @@ def run_bundle_adjustment(points_3d, observations, camera_poses, K, keypoints_li
         print("    WARNING: Too few observations for bundle adjustment")
         return points_3d, camera_poses, 0
     
-    # Initialize parameters
     camera_params = np.zeros((n_cameras, 6))
     for i, (R, t) in enumerate(camera_poses):
         camera_params[i, :3] = matrix_to_rodrigues(R)
         camera_params[i, 3:6] = t.flatten()
     
-    # Flatten parameters
     x0 = np.hstack([camera_params.ravel(), points_3d.ravel()])
     
-    # Compute initial error
     initial_residuals = bundle_adjustment_residuals(
         x0, n_cameras, n_points, camera_indices, point_indices, points_2d, K
     )
     initial_error = np.sqrt(np.mean(initial_residuals**2))
     print(f"    Initial RMS error: {initial_error:.3f} pixels")
     
-    # Build sparsity matrix for efficiency
-    m = n_observations * 2  # residuals
-    n = n_cameras * 6 + n_points * 3  # parameters
+    m = n_observations * 2  
+    n = n_cameras * 6 + n_points * 3 
     
     A = lil_matrix((m, n), dtype=int)
     
@@ -293,17 +272,14 @@ def run_bundle_adjustment(points_3d, observations, camera_poses, K, keypoints_li
         cam_idx = camera_indices[i]
         pt_idx = point_indices[i]
         
-        # Camera parameters affect this observation
         for j in range(6):
             A[2*i, cam_idx*6 + j] = 1
             A[2*i + 1, cam_idx*6 + j] = 1
         
-        # Point parameters affect this observation
         for j in range(3):
             A[2*i, n_cameras*6 + pt_idx*3 + j] = 1
             A[2*i + 1, n_cameras*6 + pt_idx*3 + j] = 1
     
-    # Set bounds if fixing first camera
     if fix_first_camera:
         lower_bounds = -np.inf * np.ones_like(x0)
         upper_bounds = np.inf * np.ones_like(x0)
@@ -314,7 +290,6 @@ def run_bundle_adjustment(points_3d, observations, camera_poses, K, keypoints_li
     else:
         bounds = (-np.inf, np.inf)
     
-    # Run optimization
     try:
         result = least_squares(
             bundle_adjustment_residuals,
@@ -330,19 +305,16 @@ def run_bundle_adjustment(points_3d, observations, camera_poses, K, keypoints_li
             bounds=bounds
         )
         
-        # Extract results
         optimized_params = result.x
         camera_params = optimized_params[:n_cameras * 6].reshape((n_cameras, 6))
         refined_points = optimized_params[n_cameras * 6:].reshape((n_points, 3))
         
-        # Convert camera params back to (R, t)
         refined_poses = []
         for i in range(n_cameras):
             R = rodrigues_to_matrix(camera_params[i, :3])
             t = camera_params[i, 3:6].reshape(3, 1)
             refined_poses.append((R, t))
         
-        # Compute final error
         final_residuals = bundle_adjustment_residuals(
             optimized_params, n_cameras, n_points, 
             camera_indices, point_indices, points_2d, K
@@ -400,13 +372,11 @@ def iterative_refinement(points_3d, point_colors, observations, camera_poses,
         print(f"\n--- Iteration {iteration + 1}/{num_iterations} ---")
         print(f"    Points before: {len(current_points)}")
         
-        # Compute current error
         _, mean_error = compute_reprojection_errors(
             current_points, current_observations, current_poses, K, keypoints_list
         )
         print(f"    Mean reprojection error: {mean_error:.3f} pixels")
         
-        # Remove high-error points
         current_points, current_colors, current_observations, removed = filter_high_error_points(
             current_points, current_colors, current_observations,
             current_poses, K, keypoints_list, threshold=error_threshold
@@ -422,8 +392,6 @@ def iterative_refinement(points_3d, point_colors, observations, camera_poses,
             )
             break
         
-        # Run bundle adjustment (simplified - just recompute error)
-        # Full BA is expensive, so we do it sparingly
         if iteration == num_iterations - 1 and len(current_points) >= 50:
             print("    Running bundle adjustment...")
             current_points, current_poses, final_error = run_bundle_adjustment(
@@ -441,7 +409,6 @@ def iterative_refinement(points_3d, point_colors, observations, camera_poses,
             'error': final_error
         })
         
-        # Decrease threshold for next iteration
         error_threshold = max(2.0, error_threshold * 0.8)
     
     stats['final_points'] = len(current_points)
@@ -453,6 +420,7 @@ def iterative_refinement(points_3d, point_colors, observations, camera_poses,
     print(f"    Final mean error: {stats['final_error']:.3f} pixels")
     
     return current_points, current_colors, current_observations, current_poses, stats
+
 
 
 
