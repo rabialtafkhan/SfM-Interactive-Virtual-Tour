@@ -307,9 +307,9 @@ def run_bundle_adjustment(points_3d, observations, camera_poses, K, keypoints_li
     if fix_first_camera:
         lower_bounds = -np.inf * np.ones_like(x0)
         upper_bounds = np.inf * np.ones_like(x0)
-        # Fix first camera parameters
-        lower_bounds[:6] = x0[:6]
-        upper_bounds[:6] = x0[:6]
+        eps = 1e-10
+        lower_bounds[:6] = x0[:6] - eps  
+        upper_bounds[:6] = x0[:6] + eps  
         bounds = (lower_bounds, upper_bounds)
     else:
         bounds = (-np.inf, np.inf)
@@ -453,5 +453,6 @@ def iterative_refinement(points_3d, point_colors, observations, camera_poses,
     print(f"    Final mean error: {stats['final_error']:.3f} pixels")
     
     return current_points, current_colors, current_observations, current_poses, stats
+
 
 
