@@ -387,9 +387,9 @@ class IncrementalSfM:
             points_2d_for_pnp,
             self.K,
             None,
-            iterationsCount=1000,
-            reprojectionError=3.0,
-            confidence=0.99
+            iterationsCount=2000,      
+            reprojectionError=5.0,     
+            confidence=0.999           
         )
         
         if not success or inliers is None:
@@ -616,6 +616,7 @@ class IncrementalSfM:
             json.dump(camera_data, f, indent=2)
         print(f"Saved {len(camera_data)} camera poses to {filename}")
     
+
 
 
 
