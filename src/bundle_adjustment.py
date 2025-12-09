@@ -416,6 +416,10 @@ def iterative_refinement(points_3d, point_colors, observations, camera_poses,
         
         if len(current_points) < 10:
             print("    WARNING: Too few points remaining!")
+            # Compute error before breaking
+            _, final_error = compute_reprojection_errors(
+                current_points, current_observations, current_poses, K, keypoints_list
+            )
             break
         
         # Run bundle adjustment (simplified - just recompute error)
@@ -449,4 +453,5 @@ def iterative_refinement(points_3d, point_colors, observations, camera_poses,
     print(f"    Final mean error: {stats['final_error']:.3f} pixels")
     
     return current_points, current_colors, current_observations, current_poses, stats
+
 
