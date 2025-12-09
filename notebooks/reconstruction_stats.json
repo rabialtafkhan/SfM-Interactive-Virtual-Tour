@@ -1,0 +1,38 @@
+{
+  "total_images": 18,
+  "registered_cameras": 2,
+  "failed_views": [
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17
+  ],
+  "points_before_refinement": 1,
+  "points_after_refinement": 1,
+  "mean_error_before": 0.9551052711178187,
+  "mean_error_after": 0.9551052711178187,
+  "camera_centers": [
+    [
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      -0.11232873515142117,
+      -0.4393779785040227,
+      -0.8912515061782509
+    ]
+  ]
+}
