@@ -395,7 +395,7 @@ def iterative_refinement(points_3d, point_colors, observations, camera_poses,
         'final_points': 0,
         'final_error': 0
     }
-    
+    final_error = 0
     for iteration in range(num_iterations):
         print(f"\n--- Iteration {iteration + 1}/{num_iterations} ---")
         print(f"    Points before: {len(current_points)}")
@@ -449,3 +449,4 @@ def iterative_refinement(points_3d, point_colors, observations, camera_poses,
     print(f"    Final mean error: {stats['final_error']:.3f} pixels")
     
     return current_points, current_colors, current_observations, current_poses, stats
+
