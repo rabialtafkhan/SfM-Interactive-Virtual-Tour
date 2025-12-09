@@ -10,11 +10,6 @@ from geometry import (
     filter_by_cheirality, filter_by_depth, filter_by_reprojection_error
 )
 
-
-# =============================================================================
-# INTRINSIC MATRIX
-# =============================================================================
-
 def compute_intrinsic_matrix(image_width, image_height, focal_length=None):
     """
     Compute the camera intrinsic matrix K.
@@ -35,11 +30,6 @@ def compute_intrinsic_matrix(image_width, image_height, focal_length=None):
 
     return K
 
-
-# =============================================================================
-# PHASE 1: TWO-VIEW RECONSTRUCTION
-# =============================================================================
-
 def reconstruct_two_view(image_path_1, image_path_2, K=None, output_ply=None):
     """
     Phase 1: Two-view Structure from Motion pipeline.
@@ -51,19 +41,16 @@ def reconstruct_two_view(image_path_1, image_path_2, K=None, output_ply=None):
     print("TWO-VIEW RECONSTRUCTION PIPELINE (Phase 1)")
     print("=" * 60)
 
-    # Step 1: Load images
     print("\n[1/10] Loading images...")
     img1_pil, img2_pil, img1_cv, img2_cv = load_image_pair(image_path_1, image_path_2)
     h, w = img1_cv.shape[:2]
     print(f"    Image size: {w} x {h}")
 
-    # Step 2: Create intrinsic matrix
     print("\n[2/10] Creating intrinsic matrix...")
     if K is None:
         K = compute_intrinsic_matrix(w, h)
     print(f"    K =\n{K}")
 
-    # Step 3: Extract SIFT features
     print("\n[3/10] Extracting SIFT features...")
     kp1, des1 = extract_sift_features(img1_cv)
     kp2, des2 = extract_sift_features(img2_cv)
@@ -72,7 +59,6 @@ def reconstruct_two_view(image_path_1, image_path_2, K=None, output_ply=None):
         print("    ERROR: Failed to extract features")
         return None, None, None, None, K, None, None
 
-    # Step 4: Match features
     print("\n[4/10] Matching features (FLANN + ratio test)...")
     good_matches = match_features_flann(des1, des2, ratio_threshold=0.7)
 
@@ -80,12 +66,10 @@ def reconstruct_two_view(image_path_1, image_path_2, K=None, output_ply=None):
         print(f"    ERROR: Not enough matches ({len(good_matches)} < 8)")
         return None, None, None, None, K, None, None
 
-    # Step 5: Extract matched points
     print("\n[5/10] Extracting matched points...")
     points1, points2 = extract_matched_points(kp1, kp2, good_matches)
     print(f"    Extracted {len(points1)} point pairs")
 
-    # Step 6: Compute Essential Matrix
     print("\n[6/10] Computing Essential Matrix...")
     E, inlier_mask = compute_essential_matrix(points1, points2, K, threshold=1.0)
 
@@ -97,7 +81,6 @@ def reconstruct_two_view(image_path_1, image_path_2, K=None, output_ply=None):
     pts2_inlier = points2[inlier_mask.ravel() == 1]
     print(f"    Inliers: {len(pts1_inlier)} / {len(points1)}")
 
-    # Step 7: Recover camera pose
     print("\n[7/10] Recovering camera pose (R, t)...")
     R, t, pose_mask = recover_pose_from_essential(E, pts1_inlier, pts2_inlier, K)
 
@@ -108,16 +91,13 @@ def reconstruct_two_view(image_path_1, image_path_2, K=None, output_ply=None):
     pts1_valid = pts1_inlier[pose_mask.ravel() > 0]
     pts2_valid = pts2_inlier[pose_mask.ravel() > 0]
 
-    # Step 8: Build projection matrices
     print("\n[8/10] Building projection matrices...")
     P1 = create_projection_matrix(K, np.eye(3), np.zeros((3, 1)))
     P2 = create_projection_matrix(K, R, t)
 
-    # Step 9: Triangulate points
     print("\n[9/10] Triangulating 3D points...")
     points_3d = triangulate_points(P1, P2, pts1_valid, pts2_valid)
 
-    # Step 10: Filter points
     print("\n[10/10] Filtering points...")
     points_3d_filtered, valid_mask = filter_by_cheirality(points_3d, R, t)
     pts1_valid = pts1_valid[valid_mask]
@@ -133,7 +113,6 @@ def reconstruct_two_view(image_path_1, image_path_2, K=None, output_ply=None):
     pts1_valid = pts1_valid[valid_mask]
     pts2_valid = pts2_valid[valid_mask]
 
-    # Extract colors
     colors = []
     for pt in pts1_valid:
         x, y = int(pt[0]), int(pt[1])
@@ -154,11 +133,6 @@ def reconstruct_two_view(image_path_1, image_path_2, K=None, output_ply=None):
 
     return points_3d_filtered, colors, R, t, K, pts1_valid, pts2_valid
 
-
-# =============================================================================
-# PHASE 2: INCREMENTAL MULTI-VIEW SfM
-# =============================================================================
-
 class IncrementalSfM:
     """
     Phase 2: Incremental Structure from Motion pipeline.
@@ -174,20 +148,16 @@ class IncrementalSfM:
         """Initialize with camera intrinsic matrix K."""
         self.K = K
         
-        # Global reconstruction state
         self.points_3d = np.empty((0, 3))
         self.point_colors = np.empty((0, 3))
-        self.camera_poses = []  # List of (R, t) tuples
+        self.camera_poses = []  
         self.camera_images = []
         
-        # Feature data per image
         self.all_keypoints = []
         self.all_descriptors = []
         
-        # Observation tracking: point_idx -> [(img_idx, kp_idx), ...]
         self.observations = {}
         
-        # Statistics
         self.stats = {
             'points_per_view': [],
             'inliers_per_view': [],
@@ -212,7 +182,6 @@ class IncrementalSfM:
         
         h, w = img1_cv.shape[:2]
         
-        # Extract features
         print("\n[1] Extracting features...")
         kp1, des1 = extract_sift_features(img1_cv)
         kp2, des2 = extract_sift_features(img2_cv)
@@ -225,7 +194,6 @@ class IncrementalSfM:
         self.all_descriptors = [des1, des2]
         self.camera_images = [img1_cv, img2_cv]
         
-        # Match features
         print("\n[2] Matching features...")
         matches = match_features_flann(des1, des2, ratio_threshold=0.7)
         
@@ -235,7 +203,6 @@ class IncrementalSfM:
         
         pts1, pts2 = extract_matched_points(kp1, kp2, matches)
         
-        # Compute Essential Matrix
         print("\n[3] Computing Essential Matrix...")
         E, inlier_mask = compute_essential_matrix(pts1, pts2, self.K)
         
@@ -246,33 +213,27 @@ class IncrementalSfM:
         pts2_inlier = pts2[inlier_mask.ravel() == 1]
         matches_inlier = [m for i, m in enumerate(matches) if inlier_mask.ravel()[i] == 1]
         
-        # Recover pose
         print("\n[4] Recovering camera pose...")
         R, t, pose_mask = recover_pose_from_essential(E, pts1_inlier, pts2_inlier, self.K)
         
         if R is None:
             return False
         
-        # Store camera poses
         self.camera_poses = [
             (np.eye(3), np.zeros((3, 1))),
             (R, t.reshape(3, 1))
         ]
         
-        # Build projection matrices
         P1 = create_projection_matrix(self.K, np.eye(3), np.zeros((3, 1)))
         P2 = create_projection_matrix(self.K, R, t)
         
-        # Filter by pose mask
         pts1_valid = pts1_inlier[pose_mask.ravel() > 0]
         pts2_valid = pts2_inlier[pose_mask.ravel() > 0]
         matches_valid = [m for i, m in enumerate(matches_inlier) if pose_mask.ravel()[i] > 0]
         
-        # Triangulate
         print("\n[5] Triangulating points...")
         points_3d = triangulate_points(P1, P2, pts1_valid, pts2_valid)
         
-        # Filter
         points_3d, valid_mask = filter_by_cheirality(points_3d, R, t)
         pts1_valid = pts1_valid[valid_mask]
         pts2_valid = pts2_valid[valid_mask]
@@ -285,7 +246,6 @@ class IncrementalSfM:
         
         self.points_3d = points_3d
         
-        # Extract colors
         colors = []
         for pt in pts1_valid:
             x, y = int(pt[0]), int(pt[1])
@@ -296,7 +256,6 @@ class IncrementalSfM:
                 colors.append([128, 128, 128])
         self.point_colors = np.array(colors) if colors else np.empty((0, 3))
         
-        # Build observations
         self.observations = {}
         for i, m in enumerate(matches_valid):
             self.observations[i] = [
@@ -333,7 +292,6 @@ class IncrementalSfM:
         
         h, w = img_cv.shape[:2]
         
-        # Step 1: Extract features
         print(f"    [1] Extracting features...")
         kp_new, des_new = extract_sift_features(img_cv)
         
@@ -341,14 +299,12 @@ class IncrementalSfM:
             print("        ERROR: No features detected")
             return False
         
-        # Step 2: Match with ALL registered images to find 2D-3D correspondences
         print(f"    [2] Finding 2D-3D correspondences from all views...")
         points_3d_for_pnp = []
         points_2d_for_pnp = []
         match_to_3d_idx = []
-        used_3d_points = set()  # Avoid duplicates
+        used_3d_points = set()  
         
-        # Try matching with each registered image
         for img_idx in range(len(self.camera_images)):
             des_prev = self.all_descriptors[img_idx]
             kp_prev = self.all_keypoints[img_idx]
@@ -359,7 +315,6 @@ class IncrementalSfM:
                 prev_kp_idx = m.queryIdx
                 new_kp_idx = m.trainIdx
                 
-                # Look up if this keypoint corresponds to a 3D point
                 for pt3d_idx, obs_list in self.observations.items():
                     if pt3d_idx in used_3d_points:
                         continue
@@ -380,7 +335,6 @@ class IncrementalSfM:
             print("        ERROR: Not enough correspondences for PnP")
             return False
         
-        # Step 3: Solve PnP with RANSAC
         print(f"    [3] Solving PnP...")
         success, rvec, tvec, inliers = cv2.solvePnPRansac(
             points_3d_for_pnp,
@@ -403,21 +357,17 @@ class IncrementalSfM:
         print(f"        PnP succeeded: {inlier_count} inliers")
         self.stats['inliers_per_view'].append(inlier_count)
         
-        # Update observations for inlier points
         for idx in inliers.ravel():
             pt3d_idx, new_kp_idx = match_to_3d_idx[idx]
             self.observations[pt3d_idx].append((new_img_idx, new_kp_idx))
         
-        # Store new camera
         self.camera_poses.append((R_new, t_new))
         self.camera_images.append(img_cv)
         self.all_keypoints.append(kp_new)
         self.all_descriptors.append(des_new)
         
-        # Step 4: Triangulate new points with the best previous view
         print(f"    [4] Triangulating new points...")
         
-        # Find best previous view (most matches)
         best_prev_idx = 0
         best_match_count = 0
         best_matches = []
@@ -439,7 +389,6 @@ class IncrementalSfM:
         )
         P_new = create_projection_matrix(self.K, R_new, t_new)
         
-        # Find matches not yet triangulated
         existing_kp_in_prev = set()
         for pt3d_idx, obs_list in self.observations.items():
             for (obs_img_idx, obs_kp_idx) in obs_list:
@@ -462,7 +411,6 @@ class IncrementalSfM:
             
             new_points_3d = triangulate_points(P_prev, P_new, new_pts_prev, new_pts_new)
             
-            # Filter new points
             new_points_3d, valid_mask = filter_by_cheirality(new_points_3d, R_new, t_new)
             new_pts_prev = new_pts_prev[valid_mask]
             new_pts_new = new_pts_new[valid_mask]
@@ -477,7 +425,6 @@ class IncrementalSfM:
                 start_idx = len(self.points_3d)
                 self.points_3d = np.vstack([self.points_3d, new_points_3d])
                 
-                # Extract colors
                 new_colors = []
                 for pt in new_pts_new:
                     x, y = int(pt[0]), int(pt[1])
@@ -492,7 +439,6 @@ class IncrementalSfM:
                 else:
                     self.point_colors = np.array(new_colors)
                 
-                # Update observations
                 for i, (prev_kp_idx, new_kp_idx) in enumerate(new_kp_indices):
                     pt3d_idx = start_idx + i
                     self.observations[pt3d_idx] = [
@@ -524,7 +470,6 @@ class IncrementalSfM:
             compute_reprojection_errors
         )
         
-        # Compute initial error
         _, initial_error = compute_reprojection_errors(
             self.points_3d, self.observations, self.camera_poses,
             self.K, self.all_keypoints
@@ -532,7 +477,6 @@ class IncrementalSfM:
         print(f"\nInitial mean reprojection error: {initial_error:.3f} pixels")
         print(f"Initial point count: {len(self.points_3d)}")
         
-        # Run iterative refinement
         (self.points_3d, self.point_colors, self.observations, 
          self.camera_poses, stats) = iterative_refinement(
             self.points_3d, self.point_colors, self.observations,
@@ -541,7 +485,6 @@ class IncrementalSfM:
             error_threshold=5.0
         )
         
-        # Final error
         _, final_error = compute_reprojection_errors(
             self.points_3d, self.observations, self.camera_poses,
             self.K, self.all_keypoints
@@ -616,6 +559,7 @@ class IncrementalSfM:
             json.dump(camera_data, f, indent=2)
         print(f"Saved {len(camera_data)} camera poses to {filename}")
     
+
 
 
 
