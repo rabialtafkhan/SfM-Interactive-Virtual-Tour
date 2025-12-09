@@ -579,20 +579,20 @@ class IncrementalSfM:
         }
     def find_best_initial_pair(self, images):
     """Find the image pair with best feature matches for initialization."""
-    best_pair = (0, 1)
-    best_inliers = 0
-    
-    for i in range(len(images)):
-        for j in range(i+1, min(i+5, len(images))):  # Check nearby images
-            kp1, des1 = extract_sift_features(images[i])
-            kp2, des2 = extract_sift_features(images[j])
-            matches = match_features_flann(des1, des2, ratio_threshold=0.7)
-            
-            if len(matches) > best_inliers:
-                best_inliers = len(matches)
-                best_pair = (i, j)
-    
-    return best_pair
+        best_pair = (0, 1)
+        best_inliers = 0
+        
+        for i in range(len(images)):
+            for j in range(i+1, min(i+5, len(images))):  # Check nearby images
+                kp1, des1 = extract_sift_features(images[i])
+                kp2, des2 = extract_sift_features(images[j])
+                matches = match_features_flann(des1, des2, ratio_threshold=0.7)
+                
+                if len(matches) > best_inliers:
+                    best_inliers = len(matches)
+                    best_pair = (i, j)
+        
+        return best_pair
     
     def save_ply(self, filename):
         """Save point cloud to PLY file."""
@@ -614,5 +614,6 @@ class IncrementalSfM:
         with open(filename, 'w') as f:
             json.dump(camera_data, f, indent=2)
         print(f"Saved {len(camera_data)} camera poses to {filename}")
+
 
 
