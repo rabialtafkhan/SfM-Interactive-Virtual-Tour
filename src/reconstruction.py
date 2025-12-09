@@ -577,8 +577,9 @@ class IncrementalSfM:
             'points_per_view': self.stats['points_per_view'],
             'inliers_per_view': self.stats['inliers_per_view']
         }
+
     def find_best_initial_pair(self, images):
-    """Find the image pair with best feature matches for initialization."""
+        """Find the image pair with best feature matches for initialization."""
         best_pair = (0, 1)
         best_inliers = 0
         
@@ -614,6 +615,8 @@ class IncrementalSfM:
         with open(filename, 'w') as f:
             json.dump(camera_data, f, indent=2)
         print(f"Saved {len(camera_data)} camera poses to {filename}")
+    
+
 
 
 
