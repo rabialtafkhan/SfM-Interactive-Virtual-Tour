@@ -6,5 +6,6 @@
 ```
 cd web_viewer
 ```
-3. go into broswer and input: python -m http.server 8000
-4. look at controls and browse! 
+3. then in terminal, input: python3 -m http.server 8000
+4. go into broswer and input: http://localhost:8000
+5. look at controls and browse! 
